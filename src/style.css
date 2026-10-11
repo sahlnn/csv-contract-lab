@@ -129,6 +129,27 @@ button:hover {
   margin: 0;
 }
 
+.key-picker {
+  display: block;
+  margin: 8px 0;
+  font-weight: 600;
+}
+
+.key-picker select {
+  margin-left: 8px;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.key p + h3,
+.key p + p {
+  margin-top: 8px;
+}
+
 .columns ul {
   margin: 0;
   padding-left: 20px;

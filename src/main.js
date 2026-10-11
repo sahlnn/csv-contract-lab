@@ -1,5 +1,6 @@
 import sampleCsv from './sample.csv?raw';
 import { parseCsvText, readCsvFile, compareColumns } from './csv.js';
+import { findKeyCandidates, checkKey } from './keys.js';
 import './style.css';
 
 const PREVIEW_ROWS = 20;
@@ -9,7 +10,7 @@ const SIDES = [
 ];
 
 // Her tarafın durumu birbirinden bağımsızdır:
-// { status: 'empty' } | { status: 'ok', fileName, headers, records, columnCount } | { status: 'error', error }
+// { status: 'empty' } | { status: 'loading' } | { status: 'ok', fileName, headers, records, columnCount } | { status: 'error', error }
 const state = {
   old: { status: 'empty' },
   new: { status: 'empty' },
@@ -18,8 +19,15 @@ const state = {
 // Bir taraftaki eski bir okuma, yenisinden sonra bitip durumu ezmesin diye.
 const runs = { old: 0, new: 0 };
 
+// Kullanıcının seçtiği anahtar kolon adı; hiçbir zaman otomatik seçilmez.
+let selectedKey = '';
+
 const panels = {};
 const columnsEl = document.getElementById('columns');
+const keyHintEl = document.getElementById('key-hint');
+const keyPickerEl = document.getElementById('key-picker');
+const keySelectEl = document.getElementById('key-select');
+const keyResultsEl = document.getElementById('key-results');
 
 function cell(tag, text) {
   const el = document.createElement(tag);
@@ -67,7 +75,9 @@ function toState(fileName, parsed) {
 
 async function loadFile(sideId, file) {
   const run = ++runs[sideId];
-  setState(sideId, { status: 'empty' }); // önceki dosyanın sonuçları hemen temizlenir
+  // Önceki dosyanın sonuçları hemen temizlenir. 'loading' iken anahtar seçimi korunur;
+  // yeni dosya okununca seçim hâlâ uygunsa kalır, değilse temizlenir.
+  setState(sideId, { status: 'loading' });
   const parsed = await readCsvFile(file);
   if (run !== runs[sideId]) return;
   setState(sideId, toState(file.name, parsed));
@@ -77,6 +87,7 @@ function setState(sideId, next) {
   state[sideId] = next;
   renderPanel(sideId);
   renderColumns();
+  renderKey();
 }
 
 function renderPanel(sideId) {
@@ -164,5 +175,85 @@ function renderColumns() {
   }
 }
 
+const MAX_LISTED = 20;
+
+function limited(items) {
+  const shown = items.slice(0, MAX_LISTED).join(', ');
+  return items.length > MAX_LISTED ? `${shown} … (+${items.length - MAX_LISTED} tane daha)` : shown;
+}
+
+function keyReport(title, headers, records) {
+  const result = checkKey(headers, records, selectedKey);
+  const box = document.createElement('div');
+  box.append(cell('h3', `${title} (${result.totalRecords} kayıt)`));
+
+  if (result.emptyRecords.length === 0 && result.duplicates.length === 0) {
+    box.append(cell('p', 'Sorun bulunamadı: tüm anahtarlar dolu ve benzersiz.'));
+    return box;
+  }
+
+  const ul = document.createElement('ul');
+  if (result.emptyRecords.length > 0) {
+    ul.append(
+      cell(
+        'li',
+        `Boş veya yalnızca boşluk içeren anahtar: ${result.emptyRecords.length} kayıt. Kayıt no: ${limited(result.emptyRecords)}`,
+      ),
+    );
+  }
+  if (result.duplicates.length > 0) {
+    ul.append(cell('li', `Tekrar eden anahtar: ${result.duplicates.length} değer`));
+    for (const d of result.duplicates.slice(0, MAX_LISTED)) {
+      const ids = limited(d.recordNumbers);
+      ul.append(cell('li', `"${d.value}" → ${d.recordNumbers.length} kayıt. Kayıt no: ${ids}`));
+    }
+    if (result.duplicates.length > MAX_LISTED) {
+      ul.append(cell('li', `… ve ${result.duplicates.length - MAX_LISTED} tekrar eden değer daha`));
+    }
+  }
+  box.append(ul);
+  return box;
+}
+
+// Seçilen anahtara göre iki dosyanın denetim sonucunu çizer.
+function renderKeyResults() {
+  keyResultsEl.replaceChildren();
+  if (selectedKey === '' || state.old.status !== 'ok' || state.new.status !== 'ok') return;
+  keyResultsEl.append(
+    cell('p', 'Kayıt no, başlık satırı hariç 1\'den başlar; dosyadaki fiziksel satır numarası değildir.'),
+    keyReport('Eski CSV', state.old.headers, state.old.records),
+    keyReport('Yeni CSV', state.new.headers, state.new.records),
+  );
+}
+
+// Dosyalar değişince çağrılır: adayları yeniden hesaplar, seçim artık uygun değilse temizler.
+function renderKey() {
+  const ready = state.old.status === 'ok' && state.new.status === 'ok';
+  const candidates = ready ? findKeyCandidates(state.old.headers, state.new.headers) : [];
+  const loading = state.old.status === 'loading' || state.new.status === 'loading';
+  if (!loading && !candidates.includes(selectedKey)) selectedKey = '';
+
+  keyPickerEl.hidden = candidates.length === 0;
+  if (!ready) {
+    keyHintEl.textContent = 'Anahtar kolon seçmek için iki dosyayı da başarıyla yükleyin.';
+  } else if (candidates.length === 0) {
+    keyHintEl.textContent =
+      'Seçilebilecek kolon yok. Anahtar kolon iki dosyada da bulunmalı, adı boş olmamalı ve her dosyada yalnızca bir kez geçmelidir.';
+  } else {
+    keyHintEl.textContent = 'Anahtar kolonu siz seçersiniz; otomatik seçim yapılmaz.';
+  }
+
+  const placeholder = new Option('Kolon seçin…', '');
+  keySelectEl.replaceChildren(placeholder, ...candidates.map((name) => new Option(name, name)));
+  keySelectEl.value = selectedKey;
+  renderKeyResults();
+}
+
+keySelectEl.addEventListener('change', () => {
+  selectedKey = keySelectEl.value;
+  renderKeyResults();
+});
+
 for (const side of SIDES) panels[side.id] = createPanel(side);
 renderColumns();
+renderKey();

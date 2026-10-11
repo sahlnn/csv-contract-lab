@@ -19,6 +19,16 @@
       <div id="panels" class="panels"></div>
 
       <section id="columns" class="columns" aria-live="polite"></section>
+
+      <section id="key" class="columns key">
+        <h2>Anahtar kolon</h2>
+        <p id="key-hint"></p>
+        <label id="key-picker" class="key-picker" hidden>
+          Satırları eşleştirmek için kolon seçin:
+          <select id="key-select"></select>
+        </label>
+        <div id="key-results" aria-live="polite"></div>
+      </section>
     </main>
 
     <template id="panel-template">
