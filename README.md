@@ -20,7 +20,8 @@ The interface is in Turkish.
 
 ## Install and run
 
-You need Node.js and npm.
+You need npm and Node.js `^20.19.0` or `>=22.12.0` (the range required by the
+installed Vite 8.3.4).
 
 ```bash
 npm install
@@ -145,3 +146,7 @@ expected changes as carefully as unexpected ones.
   accepted or handled correctly by Shopify or any other system.
 - It does not check email formats, dates, required fields or value rules.
 - It does not edit or save files.
+
+## License
+
+MIT License. Copyright (c) 2026 Ali Sahin. See [LICENSE](LICENSE).
