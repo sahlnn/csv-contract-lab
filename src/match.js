@@ -58,6 +58,8 @@ export function matchRecords(oldData, newData, keyName) {
         key,
         oldRecordNumber: oldItems[0].recordNumber,
         newRecordNumber: newItems[0].recordNumber,
+        oldRecord: oldItems[0].record,
+        newRecord: newItems[0].record,
       });
     } else {
       removed.push({ key, ...oldItems[0] });

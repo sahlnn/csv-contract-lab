@@ -89,7 +89,7 @@ button:hover {
 
 .panels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
   gap: 24px;
   align-items: start;
 }
@@ -159,6 +159,55 @@ button:hover {
   color: var(--error-text);
   background: var(--error-bg);
   border-radius: 6px;
+}
+
+.changes p {
+  margin-bottom: 8px;
+}
+
+.expected-set {
+  margin: 12px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.expected-set legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.expected-note {
+  color: var(--muted);
+}
+
+.expected-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.expected-list label {
+  cursor: pointer;
+}
+
+.val {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.val-special {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.changes td {
+  white-space: normal;
+}
+
+.changes tr.unexpected td:first-child {
+  font-weight: 600;
+  color: var(--error-text);
 }
 
 .key p + h3,

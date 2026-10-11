@@ -2,9 +2,11 @@ import sampleCsv from './sample.csv?raw';
 import { parseCsvText, readCsvFile, compareColumns } from './csv.js';
 import { findKeyCandidates, checkKey } from './keys.js';
 import { matchRecords } from './match.js';
+import { findComparableColumns, compareCells } from './changes.js';
 import './style.css';
 
 const PREVIEW_ROWS = 20;
+const CHANGE_ROWS = 50;
 const SIDES = [
   { id: 'old', title: 'Eski CSV' },
   { id: 'new', title: 'Yeni CSV' },
@@ -23,6 +25,11 @@ const runs = { old: 0, new: 0 };
 // Kullanıcının seçtiği anahtar kolon adı; hiçbir zaman otomatik seçilmez.
 let selectedKey = '';
 
+// "Beklenen değişiklik" olarak işaretlenen kolonlar; başlangıçta hiçbiri seçili değildir.
+const expectedColumns = new Set();
+// Son kayıt eşleştirme sonucu (hücre karşılaştırması bunu kullanır); gizliyken null.
+let currentMatch = null;
+
 const panels = {};
 const columnsEl = document.getElementById('columns');
 const keyHintEl = document.getElementById('key-hint');
@@ -30,6 +37,10 @@ const keyPickerEl = document.getElementById('key-picker');
 const keySelectEl = document.getElementById('key-select');
 const keyResultsEl = document.getElementById('key-results');
 const matchEl = document.getElementById('match');
+const changesEl = document.getElementById('changes');
+const changesScopeEl = document.getElementById('changes-scope');
+const expectedListEl = document.getElementById('expected-list');
+const changesResultsEl = document.getElementById('changes-results');
 
 function cell(tag, text) {
   const el = document.createElement(tag);
@@ -265,9 +276,11 @@ function renderMatch() {
   matchEl.replaceChildren();
   const ready = state.old.status === 'ok' && state.new.status === 'ok';
   matchEl.hidden = !(ready && selectedKey !== '');
+  currentMatch = null;
   if (matchEl.hidden) return; // yükleme sırasında veya anahtar yokken eski sonuç gösterilmez
 
   const r = matchRecords(state.old, state.new, selectedKey);
+  currentMatch = r;
   matchEl.append(cell('h2', 'Kayıt eşleştirme'));
 
   if (r.partial) {
@@ -330,9 +343,172 @@ function renderMatch() {
   }
 }
 
+// Bir hücre değerini görünür biçimde yazar: eksik hücre, boş metin ve yalnızca boşluk ayrı görünür.
+function valueCell(value) {
+  const td = document.createElement('td');
+  const span = document.createElement('span');
+  span.className = 'val';
+  if (value === undefined) {
+    span.textContent = '(hücre yok)';
+    span.classList.add('val-special');
+  } else if (value === '') {
+    span.textContent = '(boş metin)';
+    span.classList.add('val-special');
+  } else {
+    span.textContent = `"${value}"`;
+    if (value.trim() === '') {
+      const tag = cell('span', ' (yalnızca boşluk)');
+      tag.className = 'val-special';
+      td.append(span, tag);
+      return td;
+    }
+  }
+  td.append(span);
+  return td;
+}
+
+const KIND_LABELS = {
+  changed: 'Değer değişti',
+  'old-missing': 'Eski kayıtta hücre yok',
+  'new-missing': 'Yeni kayıtta hücre yok',
+};
+
+function comparableColumns() {
+  return findComparableColumns(state.old.headers, state.new.headers, selectedKey);
+}
+
+// Seçili beklenen kolonlara göre değişiklik sonucunu çizer (checkbox'lara dokunmaz).
+function renderChangeResults() {
+  changesResultsEl.replaceChildren();
+  if (!currentMatch) return;
+  const columns = comparableColumns();
+  if (columns.length === 0) {
+    changesResultsEl.append(cell('p', 'Karşılaştırılabilecek veri kolonu yok.'));
+    return;
+  }
+
+  const r = compareCells(currentMatch.matched, state.old.headers, state.new.headers, columns, expectedColumns);
+  const stats = document.createElement('dl');
+  stats.className = 'summary';
+  stats.append(
+    statCard('Beklenen değişen hücre', r.expectedCount),
+    statCard('Beklenmeyen değişen hücre', r.unexpectedCount),
+    statCard('Değişen kayıt', `${r.changedRecordCount} / ${r.comparedPairCount}`),
+  );
+  changesResultsEl.append(
+    stats,
+    cell('p', 'Hücre sayısı ile kayıt sayısı farklıdır: bir kayıtta birden fazla hücre değişmiş olabilir.'),
+  );
+
+  if (r.changes.length === 0) {
+    changesResultsEl.append(cell('p', 'Karşılaştırılan hücrelerde değişiklik yok.'));
+    return;
+  }
+
+  const head = document.createElement('tr');
+  for (const h of ['Durum', 'Anahtar', 'Kolon', 'Eski değer', 'Yeni değer', 'Değişiklik türü']) {
+    head.append(cell('th', h));
+  }
+  const thead = document.createElement('thead');
+  thead.append(head);
+
+  const tbody = document.createElement('tbody');
+  for (const c of r.changes.slice(0, CHANGE_ROWS)) {
+    const tr = document.createElement('tr');
+    tr.append(
+      cell('td', c.expected ? 'Beklenen' : 'Beklenmeyen'),
+      cell('td', c.key),
+      cell('td', c.column),
+      valueCell(c.oldValue),
+      valueCell(c.newValue),
+      cell('td', KIND_LABELS[c.kind]),
+    );
+    if (!c.expected) tr.className = 'unexpected';
+    tbody.append(tr);
+  }
+  const table = document.createElement('table');
+  table.append(thead, tbody);
+  const wrap = document.createElement('div');
+  wrap.className = 'table-wrap';
+  wrap.append(table);
+  changesResultsEl.append(wrap);
+
+  if (r.changes.length > CHANGE_ROWS) {
+    changesResultsEl.append(
+      cell(
+        'p',
+        `İlk ${CHANGE_ROWS} değişiklik gösteriliyor (beklenmeyenler önce); ${r.changes.length - CHANGE_ROWS} değişiklik daha gösterilmiyor. Yukarıdaki sayılar gösterilmeyenler dahil bütün değişiklikleri kapsar.`,
+      ),
+    );
+  }
+}
+
+// Hücre değişikliği bölümü: kapsam notu, beklenen kolon seçimi ve sonuçlar.
+function renderChanges() {
+  const loading = state.old.status === 'loading' || state.new.status === 'loading';
+  const ready = state.old.status === 'ok' && state.new.status === 'ok';
+
+  changesResultsEl.replaceChildren();
+  expectedListEl.replaceChildren();
+  changesScopeEl.textContent = '';
+
+  if (loading) {
+    changesEl.hidden = true; // yükleme sırasında seçim korunur, eski sonuç gösterilmez
+    return;
+  }
+  if (!ready) {
+    expectedColumns.clear(); // hatalı/boş dosya: seçimler artık uygun değil
+    changesEl.hidden = true;
+    return;
+  }
+
+  // Yalnızca hâlâ uygun kolonlar kalır; yeni anahtar kolon seçimlerden çıkar.
+  const columns = comparableColumns();
+  for (const name of [...expectedColumns]) if (!columns.includes(name)) expectedColumns.delete(name);
+
+  changesEl.hidden = selectedKey === '' || !currentMatch;
+  if (changesEl.hidden) return;
+
+  // Kapsam dışı kolonlar: iki dosyada da tek kez bulunmayan veya adı boş olanlar (anahtar hariç).
+  const outOfScope = [...new Set([...state.old.headers, ...state.new.headers])].filter(
+    (n) => n !== selectedKey && !columns.includes(n),
+  );
+  const scope = [
+    `Yalnızca güvenle eşleşen ${currentMatch.matched.length} kayıt çifti karşılaştırılır.`,
+  ];
+  if (currentMatch.partial) {
+    scope.push('Belirsiz ve geçersiz anahtarlı kayıtların hücreleri karşılaştırılmadı.');
+  }
+  scope.push(`Anahtar kolon ("${selectedKey}") karşılaştırmaya katılmaz.`);
+  if (outOfScope.length > 0) {
+    const names = outOfScope.map((n) => (n.trim() === '' ? '(boş başlık)' : n)).join(', ');
+    scope.push(`Kapsam dışı kolonlar (iki dosyada da tek kez bulunmuyor veya adı boş): ${names}.`);
+  }
+  changesScopeEl.textContent = scope.join(' ');
+
+  for (const name of columns) {
+    const label = document.createElement('label');
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.value = name;
+    box.checked = expectedColumns.has(name);
+    box.addEventListener('change', () => {
+      if (box.checked) expectedColumns.add(name);
+      else expectedColumns.delete(name);
+      renderChangeResults();
+    });
+    label.append(box, ' ', name);
+    expectedListEl.append(label);
+  }
+  document.getElementById('expected-set').hidden = columns.length === 0; // seçilecek kolon yoksa kutuyu gösterme
+
+  renderChangeResults();
+}
+
 // Seçilen anahtara göre iki dosyanın denetim sonucunu çizer.
 function renderKeyResults() {
   renderMatch();
+  renderChanges();
   keyResultsEl.replaceChildren();
   if (selectedKey === '' || state.old.status !== 'ok' || state.new.status !== 'ok') return;
   keyResultsEl.append(

@@ -31,6 +31,20 @@
       </section>
 
       <section id="match" class="columns match" aria-live="polite" hidden></section>
+
+      <section id="changes" class="columns changes" hidden>
+        <h2>Hücre değişiklikleri</h2>
+        <p id="changes-scope"></p>
+        <fieldset id="expected-set" class="expected-set">
+          <legend>Değişmesini beklediğiniz kolonlar</legend>
+          <p class="expected-note">
+            "Beklenen", sizin işaretlediğiniz niyettir; değişikliğin doğru, güvenli
+            veya onaylanmış olduğu anlamına gelmez.
+          </p>
+          <div id="expected-list" class="expected-list"></div>
+        </fieldset>
+        <div id="changes-results" aria-live="polite"></div>
+      </section>
     </main>
 
     <template id="panel-template">
