@@ -1,6 +1,7 @@
 import sampleCsv from './sample.csv?raw';
 import { parseCsvText, readCsvFile, compareColumns } from './csv.js';
 import { findKeyCandidates, checkKey } from './keys.js';
+import { matchRecords } from './match.js';
 import './style.css';
 
 const PREVIEW_ROWS = 20;
@@ -28,6 +29,7 @@ const keyHintEl = document.getElementById('key-hint');
 const keyPickerEl = document.getElementById('key-picker');
 const keySelectEl = document.getElementById('key-select');
 const keyResultsEl = document.getElementById('key-results');
+const matchEl = document.getElementById('match');
 
 function cell(tag, text) {
   const el = document.createElement(tag);
@@ -215,8 +217,122 @@ function keyReport(title, headers, records) {
   return box;
 }
 
+function statCard(label, value) {
+  const div = document.createElement('div');
+  div.append(cell('dt', label), cell('dd', String(value)));
+  return div;
+}
+
+// Eklenen/silinen kayıtların ilk 20'sini, kendi dosyasının başlıklarıyla gösterir.
+function recordPreview(title, headers, items) {
+  const wrap = document.createElement('div');
+  wrap.append(cell('h3', `${title} (${items.length})`));
+  if (items.length === 0) {
+    wrap.append(cell('p', 'Kayıt yok.'));
+    return wrap;
+  }
+
+  const shown = items.slice(0, PREVIEW_ROWS);
+  const colCount = shown.reduce((max, it) => Math.max(max, it.record.length), headers.length);
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  headRow.append(cell('th', 'Kayıt no'));
+  for (let i = 0; i < colCount; i++) headRow.append(cell('th', headers[i] ?? ''));
+  thead.append(headRow);
+
+  const tbody = document.createElement('tbody');
+  for (const it of shown) {
+    const tr = document.createElement('tr');
+    tr.append(cell('td', String(it.recordNumber)));
+    for (let i = 0; i < colCount; i++) tr.append(cell('td', it.record[i] ?? ''));
+    tbody.append(tr);
+  }
+
+  const table = document.createElement('table');
+  table.append(thead, tbody);
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'table-wrap';
+  tableWrap.append(table);
+  wrap.append(tableWrap);
+  if (items.length > PREVIEW_ROWS) {
+    wrap.append(cell('p', `İlk ${PREVIEW_ROWS} kayıt gösteriliyor; ${items.length - PREVIEW_ROWS} kayıt daha var.`));
+  }
+  return wrap;
+}
+
+// Seçilen anahtara göre kayıtları eşleştirip sayıları ve önizlemeleri çizer.
+function renderMatch() {
+  matchEl.replaceChildren();
+  const ready = state.old.status === 'ok' && state.new.status === 'ok';
+  matchEl.hidden = !(ready && selectedKey !== '');
+  if (matchEl.hidden) return; // yükleme sırasında veya anahtar yokken eski sonuç gösterilmez
+
+  const r = matchRecords(state.old, state.new, selectedKey);
+  matchEl.append(cell('h2', 'Kayıt eşleştirme'));
+
+  if (r.partial) {
+    const invalidCount = r.invalidOld.length + r.invalidNew.length;
+    matchEl.append(
+      cell(
+        'p',
+        `Sonuçlar kısmidir: ${r.ambiguousRecordCount} belirsiz ve ${invalidCount} geçersiz anahtarlı kayıt aşağıdaki sayılara katılmadı.`,
+      ),
+    );
+    matchEl.lastChild.className = 'partial';
+  }
+
+  const stats = document.createElement('dl');
+  stats.className = 'summary';
+  stats.append(
+    statCard('Eşleşen kayıt', r.matched.length),
+    statCard('Eklenen kayıt', r.added.length),
+    statCard('Silinen kayıt', r.removed.length),
+  );
+  matchEl.append(stats);
+
+  matchEl.append(
+    cell('p', 'Kayıt no, başlık satırı hariç 1\'den başlar; dosyadaki fiziksel satır numarası değildir.'),
+    recordPreview('Eklenen kayıtlar (yalnızca yeni dosyada)', state.new.headers, r.added),
+    recordPreview('Silinen kayıtlar (yalnızca eski dosyada)', state.old.headers, r.removed),
+  );
+
+  if (r.ambiguous.length > 0) {
+    const wrap = document.createElement('div');
+    wrap.append(
+      cell('h3', `Belirsiz kayıtlar: ${r.ambiguous.length} anahtar, ${r.ambiguousRecordCount} kayıt`),
+      cell('p', 'Anahtar bir dosyada birden fazla kez geçtiği için, iki dosyadaki bütün kayıtları eşleştirmeye katılmadı.'),
+    );
+    const ul = document.createElement('ul');
+    for (const g of r.ambiguous.slice(0, MAX_LISTED)) {
+      const oldNos = g.oldRecordNumbers.length > 0 ? limited(g.oldRecordNumbers) : 'yok';
+      const newNos = g.newRecordNumbers.length > 0 ? limited(g.newRecordNumbers) : 'yok';
+      ul.append(cell('li', `"${g.key}" → eski kayıt no: ${oldNos}; yeni kayıt no: ${newNos}`));
+    }
+    if (r.ambiguous.length > MAX_LISTED) {
+      ul.append(cell('li', `… ve ${r.ambiguous.length - MAX_LISTED} anahtar daha`));
+    }
+    wrap.append(ul);
+    matchEl.append(wrap);
+  }
+
+  if (r.invalidOld.length + r.invalidNew.length > 0) {
+    const wrap = document.createElement('div');
+    wrap.append(cell('h3', 'Geçersiz (boş veya yalnızca boşluk) anahtarlı kayıtlar'));
+    const ul = document.createElement('ul');
+    if (r.invalidOld.length > 0) {
+      ul.append(cell('li', `Eski CSV: ${r.invalidOld.length} kayıt. Kayıt no: ${limited(r.invalidOld)}`));
+    }
+    if (r.invalidNew.length > 0) {
+      ul.append(cell('li', `Yeni CSV: ${r.invalidNew.length} kayıt. Kayıt no: ${limited(r.invalidNew)}`));
+    }
+    wrap.append(ul);
+    matchEl.append(wrap);
+  }
+}
+
 // Seçilen anahtara göre iki dosyanın denetim sonucunu çizer.
 function renderKeyResults() {
+  renderMatch();
   keyResultsEl.replaceChildren();
   if (selectedKey === '' || state.old.status !== 'ok' || state.new.status !== 'ok') return;
   keyResultsEl.append(

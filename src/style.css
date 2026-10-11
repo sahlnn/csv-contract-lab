@@ -145,6 +145,22 @@ button:hover {
   border-radius: 6px;
 }
 
+.match .summary {
+  margin: 8px 0 16px;
+}
+
+.match .table-wrap {
+  margin-bottom: 8px;
+}
+
+.match .partial {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  color: var(--error-text);
+  background: var(--error-bg);
+  border-radius: 6px;
+}
+
 .key p + h3,
 .key p + p {
   margin-top: 8px;
