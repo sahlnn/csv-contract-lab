@@ -1,0 +1,5 @@
+customer_id,name,email,signup_date
+001,Deniz,deniz@example.com,2026-10-01
+002,Ece,ece.example.com,2026-10-02
+002,"Mert, Can",mert@example.com,2026-10-03
+004,,selin@example.com,2026-02-30

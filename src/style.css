@@ -1,0 +1,161 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #1c2430;
+  --muted: #5d6877;
+  --border: #d9dee5;
+  --accent: #2456d6;
+  --accent-text: #ffffff;
+  --error-bg: #fdecec;
+  --error-text: #8a1f1f;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14181f;
+    --surface: #1c222c;
+    --text: #e8ecf2;
+    --muted: #9aa5b5;
+    --border: #2f3744;
+    --accent: #6c93ff;
+    --accent-text: #0d1220;
+    --error-bg: #3a1c1c;
+    --error-text: #ffb4b4;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+}
+
+.page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 1.75rem;
+}
+
+.lead {
+  margin: 0 0 24px;
+  color: var(--muted);
+}
+
+.picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.file-label {
+  font-weight: 600;
+}
+
+button {
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--accent-text);
+  background: var(--accent);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+.message {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  color: var(--error-text);
+  background: var(--error-bg);
+  border-radius: 8px;
+}
+
+#result {
+  margin-top: 24px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.summary div {
+  flex: 1 1 180px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.summary dt {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.summary dd {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th,
+td {
+  padding: 8px 12px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: var(--bg);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+[hidden] {
+  display: none !important;
+}

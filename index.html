@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSV Contract Lab</title>
+  </head>
+  <body>
+    <main class="page">
+      <header>
+        <h1>CSV Contract Lab</h1>
+        <p class="lead">
+          CSV dosyanızı seçin, ilk 20 veri kaydını önizleyin. Dosya yalnızca
+          tarayıcınızda işlenir; sunucuya gönderilmez ve saklanmaz.
+        </p>
+      </header>
+
+      <section class="picker">
+        <label class="file-label" for="file-input">CSV dosyası seç</label>
+        <input id="file-input" type="file" accept=".csv,text/csv" />
+        <button id="sample-btn" type="button">Örnek dosyayı aç</button>
+      </section>
+
+      <p id="message" class="message" role="alert" hidden></p>
+
+      <section id="result" hidden>
+        <dl class="summary">
+          <div><dt>Dosya adı</dt><dd id="s-name"></dd></div>
+          <div><dt>Toplam veri kaydı</dt><dd id="s-rows"></dd></div>
+          <div><dt>Kolon sayısı</dt><dd id="s-cols"></dd></div>
+        </dl>
+        <p id="preview-note" class="note"></p>
+        <div class="table-wrap">
+          <table id="preview"></table>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
