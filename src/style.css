@@ -38,7 +38,7 @@ body {
 }
 
 .page {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 32px 16px 48px;
 }
@@ -64,10 +64,6 @@ h1 {
   border-radius: 8px;
 }
 
-.file-label {
-  font-weight: 600;
-}
-
 button {
   padding: 8px 16px;
   font: inherit;
@@ -91,8 +87,51 @@ button:hover {
   border-radius: 8px;
 }
 
-#result {
-  margin-top: 24px;
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.panel {
+  min-width: 0; /* geniş tablo kartı taşırmasın, kendi içinde kaysın */
+}
+
+.panel-title {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.result {
+  margin-top: 16px;
+}
+
+.columns {
+  margin-top: 32px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.columns h2 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.columns h3 {
+  margin: 12px 0 4px;
+  font-size: 1rem;
+}
+
+.columns p {
+  margin: 0;
+}
+
+.columns ul {
+  margin: 0;
+  padding-left: 20px;
 }
 
 .summary {

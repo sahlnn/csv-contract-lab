@@ -10,31 +10,41 @@
       <header>
         <h1>CSV Contract Lab</h1>
         <p class="lead">
-          CSV dosyanızı seçin, ilk 20 veri kaydını önizleyin. Dosya yalnızca
+          Eski ve yeni CSV dosyalarınızı seçin. Her dosyanın ilk 20 veri kaydı
+          önizlenir ve kolonları karşılaştırılır. Dosyalar yalnızca
           tarayıcınızda işlenir; sunucuya gönderilmez ve saklanmaz.
         </p>
       </header>
 
-      <section class="picker">
-        <label class="file-label" for="file-input">CSV dosyası seç</label>
-        <input id="file-input" type="file" accept=".csv,text/csv" />
-        <button id="sample-btn" type="button">Örnek dosyayı aç</button>
-      </section>
+      <div id="panels" class="panels"></div>
 
-      <p id="message" class="message" role="alert" hidden></p>
+      <section id="columns" class="columns" aria-live="polite"></section>
+    </main>
 
-      <section id="result" hidden>
-        <dl class="summary">
-          <div><dt>Dosya adı</dt><dd id="s-name"></dd></div>
-          <div><dt>Toplam veri kaydı</dt><dd id="s-rows"></dd></div>
-          <div><dt>Kolon sayısı</dt><dd id="s-cols"></dd></div>
-        </dl>
-        <p id="preview-note" class="note"></p>
-        <div class="table-wrap">
-          <table id="preview"></table>
+    <template id="panel-template">
+      <section class="panel">
+        <h2 class="panel-title"></h2>
+        <div class="picker">
+          <input class="file-input" type="file" accept=".csv,text/csv" />
+          <button class="sample-btn" type="button">Örnek dosyayı aç</button>
+        </div>
+
+        <p class="message" role="alert" hidden></p>
+
+        <div class="result" hidden>
+          <dl class="summary">
+            <div><dt>Dosya adı</dt><dd class="s-name"></dd></div>
+            <div><dt>Toplam veri kaydı</dt><dd class="s-rows"></dd></div>
+            <div><dt>Kolon sayısı</dt><dd class="s-cols"></dd></div>
+          </dl>
+          <p class="note"></p>
+          <div class="table-wrap">
+            <table class="preview"></table>
+          </div>
         </div>
       </section>
-    </main>
+    </template>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
